@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日付設定</title>
+  <style>
+    body{
+      margin:0;
+      font-family:"Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+      background:#f5f7fb;
+      color:#111;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:100vh;
+    }
+    .card{
+      background:#fff;
+      border:1px solid #d9dee7;
+      border-radius:16px;
+      padding:28px;
+      box-shadow:0 6px 20px rgba(0,0,0,.06);
+      width:min(92vw, 460px);
+    }
+    h1{
+      margin:0 0 18px;
+      font-size:28px;
+      text-align:center;
+    }
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-bottom:16px;
+    }
+    label{
+      font-size:14px;
+      font-weight:700;
+    }
+    input[type="date"]{
+      padding:12px 14px;
+      border:1px solid #bcc6d4;
+      border-radius:10px;
+      font-size:16px;
+    }
+    button{
+      width:100%;
+      border:none;
+      border-radius:10px;
+      padding:12px 16px;
+      font-weight:700;
+      font-size:16px;
+      cursor:pointer;
+      background:#1f6feb;
+      color:#fff;
+    }
+    .note{
+      margin-top:12px;
+      font-size:13px;
+      line-height:1.6;
+      color:#4b5563;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>表の開始日を設定</h1>
+
+    <div class="field">
+      <label for="startDate">開始日</label>
+      <input id="startDate" type="date">
+    </div>
+
+    <button id="goBtn">表を表示する</button>
+
+    <div class="note">
+      入力した日付をそのまま開始日にして、次のページで表を表示します。
+    </div>
+  </div>
+
+  <script>
+    function fmtDateInput(d){
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    const startInput = document.getElementById('startDate');
+    startInput.value = fmtDateInput(new Date());
+
+    document.getElementById('goBtn').addEventListener('click', () => {
+      const value = startInput.value;
+      if (!value) {
+        alert('日付を入力してください');
+        return;
+      }
+      location.href = `schedule.html?start=${encodeURIComponent(value)}`;
+    });
+  </script>
+</body>
+</html>
