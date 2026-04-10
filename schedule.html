@@ -3,24 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>1班 週休予定表</title>
+<title>1班 週休表</title>
 <style>
   :root{
     --border:#111;
     --yellow:#ffeb3b;
     --bg:#f5f7fb;
   }
+
   body{
     margin:0;
     font-family:"Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
     background:var(--bg);
     color:#111;
   }
+
   .wrap{
-    max-width:100%;
+    width:100%;
     margin:20px auto;
     padding:16px;
+    box-sizing:border-box;
   }
+
   .sheet{
     background:#fff;
     border:1px solid #d9dee7;
@@ -29,18 +33,21 @@
     box-shadow:0 6px 20px rgba(0,0,0,.06);
     overflow:auto;
   }
+
   h1{
     text-align:center;
     margin:0 0 10px;
     font-size:28px;
     letter-spacing:.04em;
   }
+
   .sub{
     text-align:center;
     margin:0 0 14px;
     font-size:14px;
     color:#4b5563;
   }
+
   .legend{
     display:flex;
     justify-content:center;
@@ -49,11 +56,13 @@
     font-size:14px;
     flex-wrap:wrap;
   }
+
   .legend span{
     display:inline-flex;
     align-items:center;
     gap:8px;
   }
+
   .box{
     width:18px;
     height:18px;
@@ -61,21 +70,24 @@
     display:inline-block;
     background:var(--yellow);
   }
+
   table{
     border-collapse:collapse;
     table-layout:fixed;
     width:max-content;
     margin:0 auto;
   }
+
   td{
     border:1px solid var(--border);
     text-align:center;
     vertical-align:middle;
     padding:0;
     height:34px;
-    font-size:16px;
     min-width:46px;
+    font-size:16px;
   }
+
   td.label{
     min-width:44px;
     width:44px;
@@ -85,52 +97,65 @@
     left:0;
     z-index:2;
   }
+
   td.month{
     height:28px;
-    font-weight:700;
     font-size:15px;
+    font-weight:700;
   }
+
   td.date{
     font-size:18px;
     font-weight:700;
   }
+
   td.weekday{
     font-size:14px;
   }
+
   td.rest{
     font-weight:700;
   }
+
   td.early{
     background:var(--yellow);
   }
+
   @media print{
     body{
       background:#fff;
     }
+
     .wrap{
       margin:0;
       padding:0;
     }
+
     .sheet{
       border:none;
       box-shadow:none;
       border-radius:0;
       padding:8px;
     }
+
     h1{
       font-size:24px;
     }
-    .sub,.legend{
+
+    .sub, .legend{
       margin-bottom:8px;
     }
+
     td{
       min-width:34px;
       height:26px;
       font-size:12px;
     }
+
     td.date{
       font-size:14px;
     }
+
     td.month{
       font-size:12px;
     }
@@ -153,182 +178,237 @@
 
 <script>
 const JP_WEEK = ['日','月','火','水','木','金','土'];
+
+// あなたが貼った元コードの出番サイクルに合わせる
 const SHIFT_CYCLE = ['1の出','2の出','3の出','4の出','5の出','指定休','公休'];
-const INITIAL_W_DATE = new Date(2025,0,26); // 2025/1/26
+
+// 1班の基準日
+const INITIAL_W_DATE = new Date(2025, 0, 26); // 2025/1/26
 const INITIAL_SHIFT_INDEX = 3; // 1班 = 4の出
+
 const CYCLE_LENGTH = 28;
-const BLOCK_COUNT = 14;   // 28日×14ブロック
-const DAY_COLS = 28;      // 1行28日表示
+const DAY_COLS = 28;     // 横1列 28日
+const BLOCK_COUNT = 14;  // 28日 × 14ブロック表示
 
 function normalize(d){
   const x = new Date(d);
   x.setHours(0,0,0,0);
   return x;
 }
+
 function addDays(d, n){
   const x = new Date(d);
   x.setDate(x.getDate() + n);
   return normalize(x);
 }
+
 function fmtJP(d){
   return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
 }
-function sameDate(a,b){
+
+function fmtDateInput(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function sameDate(a, b){
   return normalize(a).getTime() === normalize(b).getTime();
 }
+
+// 貼ってくれた正しいコードの考え方
 function isWDay(date){
   const d = normalize(date);
-  const diff = Math.floor((d - INITIAL_W_DATE)/(1000*60*60*24));
+  const diff = Math.floor((d - INITIAL_W_DATE) / (1000 * 60 * 60 * 24));
   return diff >= 0 && diff % CYCLE_LENGTH === 0;
 }
+
+// 貼ってくれた正しいコードの calculateShift の考え方に合わせる
 function calculateShift(date){
   const target = normalize(date);
-  const daysDiff = Math.floor((target - INITIAL_W_DATE)/(1000*60*60*24));
-  let shiftIndex = INITIAL_SHIFT_INDEX;
+  const daysDiff = Math.floor((target - INITIAL_W_DATE) / (1000 * 60 * 60 * 24));
+  const initialShiftIndex = INITIAL_SHIFT_INDEX;
 
-  if (daysDiff < 0){
+  if (daysDiff < 0) {
     const totalDays = Math.abs(daysDiff);
-    shiftIndex = (shiftIndex - totalDays + SHIFT_CYCLE.length * 1000) % SHIFT_CYCLE.length;
+    const cycles = Math.floor(totalDays / CYCLE_LENGTH);
+    const remainingDays = totalDays % CYCLE_LENGTH;
+
+    let shiftIndex = initialShiftIndex;
+
+    for (let i = 0; i < cycles; i++) {
+      shiftIndex = (shiftIndex - CYCLE_LENGTH + SHIFT_CYCLE.length * 100) % SHIFT_CYCLE.length;
+    }
+
+    shiftIndex = (shiftIndex - remainingDays + SHIFT_CYCLE.length * 100) % SHIFT_CYCLE.length;
     return SHIFT_CYCLE[shiftIndex];
   }
 
   let dayCount = 0;
+  let shiftIndex = initialShiftIndex;
   let currentCalcDate = new Date(INITIAL_W_DATE);
 
-  while (dayCount < daysDiff){
-    if (isWDay(currentCalcDate)){
+  while (dayCount < daysDiff) {
+    if (isWDay(currentCalcDate)) {
+      // W日は翌日も同じ扱いになるので2日進める
       dayCount += 2;
       currentCalcDate.setDate(currentCalcDate.getDate() + 2);
     } else {
       dayCount++;
       currentCalcDate.setDate(currentCalcDate.getDate() + 1);
     }
-    if (dayCount <= daysDiff){
+
+    if (dayCount <= daysDiff) {
       shiftIndex = (shiftIndex + 1) % SHIFT_CYCLE.length;
     }
   }
+
   return SHIFT_CYCLE[shiftIndex];
 }
+
+// 貼ってくれた正しいコードの getShiftForDate に合わせる
 function getShiftForDate(date){
   const d = normalize(date);
-  if (isWDay(d)){
-    return `W(${calculateShift(d)})`;
+
+  if (isWDay(d)) {
+    const shift = calculateShift(d);
+    return `W(${shift})`;
   }
-  const prev = addDays(d, -1);
-  if (isWDay(prev)){
-    return calculateShift(prev);
+
+  const prevDay = addDays(d, -1);
+  if (isWDay(prevDay)) {
+    const wShift = calculateShift(prevDay);
+    return wShift;
   }
+
   return calculateShift(d);
 }
+
+// ここが重要：W(...)は通常の出勤日にしない
 function isWorkDay(shift){
-  return shift.includes('の出') || shift.startsWith('W(');
+  return shift.includes('の出');
 }
+
+// W(指定休), W(公休) もこの判定で拾える
 function restLabelForShift(shift){
   if (shift.includes('指定休')) return '所定';
   if (shift.includes('公休')) return '法定';
   return '';
 }
-function buildDayInfoRange(startDate, endDate){
-  const info = new Map();
-  const start = normalize(startDate);
-  const end = normalize(endDate);
 
-  let currentEarly = 'A';
-  let prevWasRest = false;
-
-  for (let d = normalize(INITIAL_W_DATE); d <= end; d = addDays(d,1)){
-    const shift = getShiftForDate(d);
-    const work = isWorkDay(shift);
-
-    if (work){
-      if (prevWasRest && !sameDate(d, INITIAL_W_DATE)){
-        currentEarly = currentEarly === 'A' ? 'B' : 'A';
-      }
-      info.set(d.getTime(), {
-        date: new Date(d),
-        shift,
-        restLabel: '',
-        earlySide: currentEarly,
-        aText: '\u00A0',
-        bText: '\u00A0',
-        aEarly: currentEarly === 'A',
-        bEarly: currentEarly === 'B'
-      });
-      prevWasRest = false;
-    } else {
-      const label = restLabelForShift(shift);
-      info.set(d.getTime(), {
-        date: new Date(d),
-        shift,
-        restLabel: label,
-        earlySide: null,
-        aText: label,
-        bText: label,
-        aEarly: false,
-        bEarly: false
-      });
-      prevWasRest = true;
-    }
-  }
-
-  currentEarly = 'A';
-  let nextWasRest = false;
-  let first = true;
-
-  for (let d = addDays(INITIAL_W_DATE,-1); d >= start; d = addDays(d,-1)){
-    const shift = getShiftForDate(d);
-    const work = isWorkDay(shift);
-
-    if (work){
-      if (nextWasRest && !first){
-        currentEarly = currentEarly === 'A' ? 'B' : 'A';
-      }
-      info.set(d.getTime(), {
-        date: new Date(d),
-        shift,
-        restLabel: '',
-        earlySide: currentEarly,
-        aText: '\u00A0',
-        bText: '\u00A0',
-        aEarly: currentEarly === 'A',
-        bEarly: currentEarly === 'B'
-      });
-      nextWasRest = false;
-    } else {
-      const label = restLabelForShift(shift);
-      info.set(d.getTime(), {
-        date: new Date(d),
-        shift,
-        restLabel: label,
-        earlySide: null,
-        aText: label,
-        bText: label,
-        aEarly: false,
-        bEarly: false
-      });
-      nextWasRest = true;
-    }
-    first = false;
-  }
-
-  return info;
-}
-function cell(tag, className='', text=''){
+function cell(tag, className = '', text = ''){
   const el = document.createElement(tag);
   if (className) el.className = className;
   el.textContent = text;
   return el;
 }
+
 function getStartDateFromQuery(){
   const params = new URLSearchParams(location.search);
   const start = params.get('start');
   if (start) return start;
-  const today = new Date();
-  const y = today.getFullYear();
-  const m = String(today.getMonth()+1).padStart(2,'0');
-  const d = String(today.getDate()).padStart(2,'0');
-  return `${y}-${m}-${d}`;
+  return fmtDateInput(new Date());
 }
+
+/*
+  A/Bの早番切替
+  - 通常の休み（指定休・公休）を挟んで次の出勤群でA/B反転
+  - W(...) は通常出勤扱いしない
+  - W(指定休) / W(公休) は休みとして扱う
+*/
+function buildDayInfoRange(startDate, endDate){
+  const info = new Map();
+  const start = normalize(startDate);
+  const end = normalize(endDate);
+
+  // 基準日以降
+  let currentEarly = 'A';
+  let prevWasRest = false;
+
+  for (let d = normalize(INITIAL_W_DATE); d <= end; d = addDays(d, 1)) {
+    const shift = getShiftForDate(d);
+    const work = isWorkDay(shift);
+    const restLabel = restLabelForShift(shift);
+
+    if (work) {
+      if (prevWasRest && !sameDate(d, INITIAL_W_DATE)) {
+        currentEarly = currentEarly === 'A' ? 'B' : 'A';
+      }
+
+      info.set(d.getTime(), {
+        date: new Date(d),
+        shift,
+        restLabel: '',
+        aText: '\u00A0',
+        bText: '\u00A0',
+        aEarly: currentEarly === 'A',
+        bEarly: currentEarly === 'B'
+      });
+
+      prevWasRest = false;
+    } else {
+      info.set(d.getTime(), {
+        date: new Date(d),
+        shift,
+        restLabel,
+        aText: restLabel || '\u00A0',
+        bText: restLabel || '\u00A0',
+        aEarly: false,
+        bEarly: false
+      });
+
+      // 指定休・公休・W(指定休)・W(公休) は休み群として扱う
+      prevWasRest = !!restLabel;
+    }
+  }
+
+  // 基準日より前
+  currentEarly = 'A';
+  let nextWasRest = false;
+  let first = true;
+
+  for (let d = addDays(INITIAL_W_DATE, -1); d >= start; d = addDays(d, -1)) {
+    const shift = getShiftForDate(d);
+    const work = isWorkDay(shift);
+    const restLabel = restLabelForShift(shift);
+
+    if (work) {
+      if (nextWasRest && !first) {
+        currentEarly = currentEarly === 'A' ? 'B' : 'A';
+      }
+
+      info.set(d.getTime(), {
+        date: new Date(d),
+        shift,
+        restLabel: '',
+        aText: '\u00A0',
+        bText: '\u00A0',
+        aEarly: currentEarly === 'A',
+        bEarly: currentEarly === 'B'
+      });
+
+      nextWasRest = false;
+    } else {
+      info.set(d.getTime(), {
+        date: new Date(d),
+        shift,
+        restLabel,
+        aText: restLabel || '\u00A0',
+        bText: restLabel || '\u00A0',
+        aEarly: false,
+        bEarly: false
+      });
+
+      nextWasRest = !!restLabel;
+    }
+
+    first = false;
+  }
+
+  return info;
+}
+
 function renderTable(startDate){
   const table = document.getElementById('scheduleTable');
   table.innerHTML = '';
@@ -337,61 +417,57 @@ function renderTable(startDate){
   const endDate = addDays(start, (BLOCK_COUNT * DAY_COLS) - 1);
   const info = buildDayInfoRange(start, endDate);
 
-  document.getElementById('rangeText').textContent =
-    `${fmtJP(start)} 開始`;
+  document.getElementById('rangeText').textContent = `${fmtJP(start)} 開始`;
 
-  for (let block = 0; block < BLOCK_COUNT; block++){
+  for (let block = 0; block < BLOCK_COUNT; block++) {
     const base = addDays(start, block * DAY_COLS);
 
+    // 月表示
     const monthRow = document.createElement('tr');
     monthRow.appendChild(cell('td', 'label month', ''));
-    for (let i = 0; i < DAY_COLS; i++){
+    for (let i = 0; i < DAY_COLS; i++) {
       const d = addDays(base, i);
       monthRow.appendChild(cell('td', 'month', d.getDate() === 1 ? `${d.getMonth()+1}月` : ''));
     }
     table.appendChild(monthRow);
 
+    // 日付
     const dateRow = document.createElement('tr');
     dateRow.appendChild(cell('td', 'label date', ''));
-    for (let i = 0; i < DAY_COLS; i++){
+    for (let i = 0; i < DAY_COLS; i++) {
       const d = addDays(base, i);
       dateRow.appendChild(cell('td', 'date', String(d.getDate())));
     }
     table.appendChild(dateRow);
 
+    // 曜日
     const weekRow = document.createElement('tr');
     weekRow.appendChild(cell('td', 'label weekday', ''));
-    for (let i = 0; i < DAY_COLS; i++){
+    for (let i = 0; i < DAY_COLS; i++) {
       const d = addDays(base, i);
       weekRow.appendChild(cell('td', 'weekday', JP_WEEK[d.getDay()]));
     }
     table.appendChild(weekRow);
 
+    // A
     const aRow = document.createElement('tr');
     aRow.appendChild(cell('td', 'label', 'A'));
-    for (let i = 0; i < DAY_COLS; i++){
+    for (let i = 0; i < DAY_COLS; i++) {
       const d = addDays(base, i);
       const data = info.get(d.getTime());
-      const td = cell(
-        'td',
-        `${data.restLabel ? 'rest' : ''}${data.aEarly ? ' early' : ''}`.trim(),
-        data.aText
-      );
-      aRow.appendChild(td);
+      const cls = `${data.restLabel ? 'rest' : ''}${data.aEarly ? ' early' : ''}`.trim();
+      aRow.appendChild(cell('td', cls, data.aText));
     }
     table.appendChild(aRow);
 
+    // B
     const bRow = document.createElement('tr');
     bRow.appendChild(cell('td', 'label', 'B'));
-    for (let i = 0; i < DAY_COLS; i++){
+    for (let i = 0; i < DAY_COLS; i++) {
       const d = addDays(base, i);
       const data = info.get(d.getTime());
-      const td = cell(
-        'td',
-        `${data.restLabel ? 'rest' : ''}${data.bEarly ? ' early' : ''}`.trim(),
-        data.bText
-      );
-      bRow.appendChild(td);
+      const cls = `${data.restLabel ? 'rest' : ''}${data.bEarly ? ' early' : ''}`.trim();
+      bRow.appendChild(cell('td', cls, data.bText));
     }
     table.appendChild(bRow);
   }
